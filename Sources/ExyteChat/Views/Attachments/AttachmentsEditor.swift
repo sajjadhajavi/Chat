@@ -93,6 +93,7 @@ struct AttachmentsEditor<InputViewContent: View>: View {
                             assembleSelectedMedia()
                             convertToMediaItems()
                         }
+                        .padding(.bottom, 100)
                     }
                 }
             }
