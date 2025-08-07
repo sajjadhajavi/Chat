@@ -150,6 +150,7 @@ struct AttachmentsEditor<InputViewContent: View>: View {
             Image(systemName: "xmark.circle.fill")
                 .font(.system(size: 32))
         }
+        .foregroundStyle(.white, theme.colors.messageMyBG)
         .padding(.top, geometryProxy.safeAreaInsets.top)
         .padding(.leading)
     }
