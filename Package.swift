@@ -15,8 +15,12 @@ let package = Package(
     ],
     dependencies: [
         .package(
-            url: "https://github.com/exyte/MediaPicker.git",
-            from: "3.0.0"
+            url: "https://github.com/sajjadhajavi/MediaPicker",
+            branch: "main"
+        ),
+        .package(
+            url: "https://github.com/sajjadhajavi/SHAssetToolkit",
+            branch: "main"
         ),
         .package(
             url: "https://github.com/exyte/ActivityIndicatorView",
@@ -32,6 +36,7 @@ let package = Package(
             name: "ExyteChat",
             dependencies: [
                 .product(name: "ExyteMediaPicker", package: "MediaPicker"),
+                .product(name: "SHAssetToolkit", package: "SHAssetToolkit"),
                 .product(name: "ActivityIndicatorView", package: "ActivityIndicatorView"),
                 .product(name: "GiphyUISDK", package: "giphy-ios-sdk")
             ],

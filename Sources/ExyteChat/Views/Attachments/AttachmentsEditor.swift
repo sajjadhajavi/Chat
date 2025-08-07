@@ -8,6 +8,7 @@
 import SwiftUI
 import ExyteMediaPicker
 import ActivityIndicatorView
+import SHAssetToolkit
 
 struct AttachmentsEditor<InputViewContent: View>: View {
     
@@ -16,7 +17,7 @@ struct AttachmentsEditor<InputViewContent: View>: View {
     @Environment(\.chatTheme) var theme
     @Environment(\.mediaPickerTheme) var mediaPickerTheme
     @Environment(\.mediaPickerThemeIsOverridden) var mediaPickerThemeIsOverridden
-
+    @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var keyboardState: KeyboardState
     @EnvironmentObject private var globalFocusState: GlobalFocusState
 
@@ -32,6 +33,7 @@ struct AttachmentsEditor<InputViewContent: View>: View {
 
     @State private var seleсtedMedias: [Media] = []
     @State private var currentFullscreenMedia: Media?
+    @State private var selectedImage: UIImage?
 
     var showingAlbums: Bool {
         inputViewModel.mediaPickerMode == .albums
@@ -46,45 +48,59 @@ struct AttachmentsEditor<InputViewContent: View>: View {
             }
         }
     }
+    @State private var mediaItems: [MediaItemWithURL] = []
 
     var mediaPicker: some View {
         GeometryReader { g in
-            MediaPicker(isPresented: $inputViewModel.showPicker) {
-                seleсtedMedias = $0
-                assembleSelectedMedia()
-            } albumSelectionBuilder: { _, albumSelectionView, _ in
-                VStack {
-                    albumSelectionHeaderView
-                        .padding(.top, g.safeAreaInsets.top)
-                    albumSelectionView
-                    Spacer()
-                    inputView
-                        .padding(.bottom, g.safeAreaInsets.bottom)
-                }
-                .background(mediaPickerTheme.main.pickerBackground.ignoresSafeArea())
-            } cameraSelectionBuilder: { _, cancelClosure, cameraSelectionView in
-                VStack {
-                    cameraSelectionView
-                        .overlay(alignment: .top) {
-                            cameraSelectionHeaderView(cancelClosure: cancelClosure)
-                                .padding(.top, 12)
+            VStack {
+                if !seleсtedMedias.isEmpty {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        LazyHStack(spacing: 0) {
+                            ForEach(mediaItems, id: \.media.id) { item in
+                                Group {
+                                    if item.media.type == .video {
+                                        SHVideoPlayerView(url: item.url.absoluteString, isPortrait: .constant(false))
+                                    } else {
+                                        if let uiImage = UIImage(contentsOfFile: item.url.path) {
+                                                    Image(uiImage: uiImage)
+                                                        .resizable()
+                                                        .scaledToFit()
+                                        }
+                                    }
+                                }
+                                .id(item.media.id)
+                                .containerRelativeFrame(.horizontal, count: 1, spacing: 0)
+                            }
                         }
-                        .padding(.top, g.safeAreaInsets.top)
-                    Spacer()
-                    inputView
-                        .padding(.bottom, g.safeAreaInsets.bottom)
+                        .scrollTargetLayout()
+                    }
+                    .scrollTargetBehavior(.paging)
+                    .overlay(alignment: .topLeading) {
+                        dismissButtonView(geometryProxy: g)
+                    }
+                } else {
+                    if inputViewModel.mediaPickerMode == .camera || inputViewModel.mediaPickerMode == .cameraSelection {
+                        SHCameraPickerView { asseetUrl in
+                            let media = Media(source: URLMediaModel(url: asseetUrl))
+                            seleсtedMedias = [media]
+                            assembleSelectedMedia()
+                            convertToMediaItems()
+                        }
+                        .padding(.bottom, 80)
+                    } else {
+                        SHAssetPickerView { assets in
+                            seleсtedMedias = assets.map{Media(source: AssetMediaModel(asset: $0))}
+                            assembleSelectedMedia()
+                            convertToMediaItems()
+                        }
+                    }
                 }
-                .background(mediaPickerTheme.main.pickerBackground.ignoresSafeArea())
             }
-            .didPressCancelCamera {
-                inputViewModel.showPicker = false
+            .overlay(alignment: .bottom) {
+                inputView
+                    .padding(.bottom, g.safeAreaInsets.bottom)
             }
-            .currentFullscreenMedia($currentFullscreenMedia)
-            .showLiveCameraCell()
-            .setSelectionParameters(mediaPickerSelectionParameters)
-            .pickerMode($inputViewModel.mediaPickerMode)
-            .orientationHandler(orientationHandler)
-            .padding(.top)
+            .background(mediaPickerTheme.main.pickerBackground.ignoresSafeArea())
             .background(theme.colors.mainBG)
             .ignoresSafeArea(.all)
             .onChange(of: currentFullscreenMedia) {
@@ -112,6 +128,29 @@ struct AttachmentsEditor<InputViewContent: View>: View {
                 )
             }
         }
+    }
+    func convertToMediaItems() {
+        Task {
+            var loadedItems: [MediaItemWithURL] = []
+
+            for media in seleсtedMedias {
+                if let url = await media.getURL() {
+                    loadedItems.append(MediaItemWithURL(media: media, url: url))
+                }
+            }
+
+            mediaItems = loadedItems
+        }
+    }
+    func dismissButtonView(geometryProxy: GeometryProxy) -> some View {
+        Button {
+            dismiss()
+        } label: {
+            Image(systemName: "xmark.circle.fill")
+                .font(.system(size: 32))
+        }
+        .padding(.top, geometryProxy.safeAreaInsets.top)
+        .padding(.leading)
     }
 
     func assembleSelectedMedia() {
@@ -197,4 +236,19 @@ struct AttachmentsEditor<InputViewContent: View>: View {
         }
         .padding(.horizontal)
     }
+}
+
+extension UIApplication {
+    func endEditing(_ force: Bool) {
+        connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .flatMap { $0.windows }
+            .first { $0.isKeyWindow }?
+            .endEditing(force)
+    }
+}
+
+struct MediaItemWithURL {
+    let media: Media
+    let url: URL
 }
