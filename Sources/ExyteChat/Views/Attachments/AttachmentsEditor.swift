@@ -33,7 +33,7 @@ struct AttachmentsEditor<InputViewContent: View>: View {
 
     @State private var seleсtedMedias: [Media] = []
     @State private var currentFullscreenMedia: Media?
-    @State private var selectedImage: UIImage?
+    @State private var inputViewHeight: CGFloat = 0
 
     var showingAlbums: Bool {
         inputViewModel.mediaPickerMode == .albums
@@ -79,26 +79,34 @@ struct AttachmentsEditor<InputViewContent: View>: View {
                         dismissButtonView(geometryProxy: g)
                     }
                 } else {
-                    if inputViewModel.mediaPickerMode == .camera || inputViewModel.mediaPickerMode == .cameraSelection {
-                        SHCameraPickerView { asseetUrl in
-                            let media = Media(source: URLMediaModel(url: asseetUrl))
-                            seleсtedMedias = [media]
-                            assembleSelectedMedia()
-                            convertToMediaItems()
+                    Group {
+                        if inputViewModel.mediaPickerMode == .camera || inputViewModel.mediaPickerMode == .cameraSelection {
+                            SHCameraPickerView { asseetUrl in
+                                let media = Media(source: URLMediaModel(url: asseetUrl))
+                                seleсtedMedias = [media]
+                                assembleSelectedMedia()
+                                convertToMediaItems()
+                            }
+                        } else {
+                            SHAssetPickerView { assets in
+                                seleсtedMedias = assets.map{Media(source: AssetMediaModel(asset: $0))}
+                                assembleSelectedMedia()
+                                convertToMediaItems()
+                            }
                         }
-                        .padding(.bottom, 100)
-                    } else {
-                        SHAssetPickerView { assets in
-                            seleсtedMedias = assets.map{Media(source: AssetMediaModel(asset: $0))}
-                            assembleSelectedMedia()
-                            convertToMediaItems()
-                        }
-                        .padding(.bottom, 100)
                     }
+                    .padding(.bottom, UIApplication.shared.safeAreaInsets.bottom + inputViewHeight)
                 }
             }
             .overlay(alignment: .bottom) {
                 inputView
+                    .background(GeometryReader { p in
+                        Color.clear
+                            .onAppear {
+                                inputViewHeight = p.frame(in: .global).height
+                                print("\ninputViewHeight: \(inputViewHeight)\n")
+                            }
+                    })
                     .padding(.bottom, g.safeAreaInsets.bottom)
             }
             .background(mediaPickerTheme.main.pickerBackground.ignoresSafeArea())
@@ -243,4 +251,14 @@ struct AttachmentsEditor<InputViewContent: View>: View {
 struct MediaItemWithURL {
     let media: Media
     let url: URL
+}
+
+extension UIApplication {
+    var safeAreaInsets: UIEdgeInsets {
+        connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .flatMap { $0.windows }
+            .first { $0.isKeyWindow }?
+            .safeAreaInsets ?? .zero
+    }
 }
