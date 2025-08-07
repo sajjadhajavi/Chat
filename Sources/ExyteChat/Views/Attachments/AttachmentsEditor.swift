@@ -238,16 +238,6 @@ struct AttachmentsEditor<InputViewContent: View>: View {
     }
 }
 
-extension UIApplication {
-    func endEditing(_ force: Bool) {
-        connectedScenes
-            .compactMap { $0 as? UIWindowScene }
-            .flatMap { $0.windows }
-            .first { $0.isKeyWindow }?
-            .endEditing(force)
-    }
-}
-
 struct MediaItemWithURL {
     let media: Media
     let url: URL
