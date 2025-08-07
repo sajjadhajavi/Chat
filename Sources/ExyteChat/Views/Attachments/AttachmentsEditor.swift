@@ -78,36 +78,33 @@ struct AttachmentsEditor<InputViewContent: View>: View {
                     .overlay(alignment: .topLeading) {
                         dismissButtonView(geometryProxy: g)
                     }
+                    .overlay(alignment: .bottom) {
+                        inputView
+                            .background(GeometryReader { p in
+                                Color.clear
+                                    .onAppear {
+                                        inputViewHeight = p.frame(in: .global).height
+                                        print("\ninputViewHeight: \(inputViewHeight)\n")
+                                    }
+                            })
+                            .padding(.bottom, g.safeAreaInsets.bottom)
+                    }
                 } else {
-                    Group {
-                        if inputViewModel.mediaPickerMode == .camera || inputViewModel.mediaPickerMode == .cameraSelection {
-                            SHCameraPickerView { asseetUrl in
-                                let media = Media(source: URLMediaModel(url: asseetUrl))
-                                seleсtedMedias = [media]
-                                assembleSelectedMedia()
-                                convertToMediaItems()
-                            }
-                        } else {
-                            SHAssetPickerView { assets in
-                                seleсtedMedias = assets.map{Media(source: AssetMediaModel(asset: $0))}
-                                assembleSelectedMedia()
-                                convertToMediaItems()
-                            }
+                    if inputViewModel.mediaPickerMode == .camera || inputViewModel.mediaPickerMode == .cameraSelection {
+                        SHCameraPickerView { asseetUrl in
+                            let media = Media(source: URLMediaModel(url: asseetUrl))
+                            seleсtedMedias = [media]
+                            assembleSelectedMedia()
+                            convertToMediaItems()
+                        }
+                    } else {
+                        SHAssetPickerView { assets in
+                            seleсtedMedias = assets.map{Media(source: AssetMediaModel(asset: $0))}
+                            assembleSelectedMedia()
+                            convertToMediaItems()
                         }
                     }
-                    .padding(.bottom, UIApplication.shared.safeAreaInsets.bottom + inputViewHeight)
                 }
-            }
-            .overlay(alignment: .bottom) {
-                inputView
-                    .background(GeometryReader { p in
-                        Color.clear
-                            .onAppear {
-                                inputViewHeight = p.frame(in: .global).height
-                                print("\ninputViewHeight: \(inputViewHeight)\n")
-                            }
-                    })
-                    .padding(.bottom, g.safeAreaInsets.bottom)
             }
             .background(mediaPickerTheme.main.pickerBackground.ignoresSafeArea())
             .background(theme.colors.mainBG)
