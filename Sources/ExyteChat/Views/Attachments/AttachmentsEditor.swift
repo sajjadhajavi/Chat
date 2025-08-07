@@ -86,7 +86,7 @@ struct AttachmentsEditor<InputViewContent: View>: View {
                             assembleSelectedMedia()
                             convertToMediaItems()
                         }
-                        .padding(.bottom, 80)
+                        .padding(.bottom, 100)
                     } else {
                         SHAssetPickerView { assets in
                             seleсtedMedias = assets.map{Media(source: AssetMediaModel(asset: $0))}
